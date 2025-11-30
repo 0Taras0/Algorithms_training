@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Logic/Logic.csproj" Id="bea28d69-4585-497b-850b-bbfd6331464b" />
+  <Project Path="UI/UI.csproj" Id="743fa233-84a2-4ac3-afd0-3ca3c1dd891c" />
+</Solution>
