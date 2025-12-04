@@ -1,4 +1,5 @@
 ﻿using Logic;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -14,19 +15,23 @@ namespace UI
     {
         Graph g = new();
         Dictionary<int, Point> NodePositions = new();
+        double NodeSize = 40;
 
         public MainWindow()
         {
             InitializeComponent();
         }
+
         private void IsDigit_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             e.Handled = !IsDigit(e.Text);
         }
+
         private bool IsDigit(string input)
         {
             return input.All(char.IsDigit);
         }
+
         private void AddEdge_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(EdgeInput.Text) || !EdgeInput.Text.Contains("-"))
@@ -54,6 +59,7 @@ namespace UI
             if (e.Key == Key.Enter)
                 AddEdge_Click(sender, e);
         }
+
         void DrawGraph()
         {
             GraphCanvas.Children.Clear();
@@ -66,18 +72,31 @@ namespace UI
             foreach (var n in NodePositions)
                 DrawNode(n.Key, n.Value);
         }
+
         void AutoPlaceNodes()
         {
             NodePositions.Clear();
             var nodes = g.GetNodes();
             int n = nodes.Count;
+            if (n <= 20)
+                NodeSize = 40;
+            else if (n <= 200)
+                NodeSize = 25;
+            else if (n <= 1000)
+                NodeSize = 12;
+            else if (n <= 5000)
+                NodeSize = 6;
+            else
+                NodeSize = 3;
 
             int cx = (int)GraphCanvas.ActualWidth / 2;
             int cy = (int)GraphCanvas.ActualHeight / 2;
             int r = Math.Min(cx, cy) - 40;
 
             if (n == 1)
+            {
                 NodePositions[nodes[0]] = new Point(cx, cy);
+            }
             else
             {
                 for (int i = 0; i < n; i++)
@@ -86,41 +105,47 @@ namespace UI
                     double x = cx + r * Math.Cos(angle);
                     double y = cy + r * Math.Sin(angle);
 
-                    x = Math.Max(40, Math.Min(x, GraphCanvas.ActualWidth - 40));
-                    y = Math.Max(40, Math.Min(y, GraphCanvas.ActualHeight - 40));
+                    x = Math.Max(NodeSize, Math.Min(x, GraphCanvas.ActualWidth - NodeSize));
+                    y = Math.Max(NodeSize, Math.Min(y, GraphCanvas.ActualHeight - NodeSize));
 
                     NodePositions[nodes[i]] = new Point(x, y);
                 }
             }
         }
+
         void DrawNode(int id, Point p)
         {
+            double r = NodeSize / 2;
+
             Ellipse el = new()
             {
-                Width = 40,
-                Height = 40,
+                Width = NodeSize,
+                Height = NodeSize,
                 Fill = Brushes.LightBlue,
                 Stroke = Brushes.Black,
-                StrokeThickness = 2
+                StrokeThickness = NodeSize < 8 ? 0.5 : 1
             };
 
-            Canvas.SetLeft(el, p.X - 20);
-            Canvas.SetTop(el, p.Y - 20);
-
+            Canvas.SetLeft(el, p.X - r);
+            Canvas.SetTop(el, p.Y - r);
             GraphCanvas.Children.Add(el);
 
-            TextBlock t = new()
+            if (NodeSize >= 15)
             {
-                Text = id.ToString(),
-                FontSize = 16,
-                FontWeight = FontWeights.Bold
-            };
+                TextBlock t = new()
+                {
+                    Text = id.ToString(),
+                    FontSize = NodeSize * 0.5,
+                    FontWeight = FontWeights.Bold
+                };
 
-            Canvas.SetLeft(t, p.X - 8);
-            Canvas.SetTop(t, p.Y - 10);
+                Canvas.SetLeft(t, p.X - (NodeSize * 0.2));
+                Canvas.SetTop(t, p.Y - (NodeSize * 0.3));
 
-            GraphCanvas.Children.Add(t);
+                GraphCanvas.Children.Add(t);
+            }
         }
+
         void DrawEdge(Point a, Point b)
         {
             Line line = new()
@@ -135,6 +160,7 @@ namespace UI
 
             GraphCanvas.Children.Add(line);
         }
+
         private void BFSButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(StartNodeSearch.Text))
@@ -151,9 +177,15 @@ namespace UI
                 end = endNode;
             }
 
+            var sw = Stopwatch.StartNew();
             var result = g.BFS(start, end);
-            ResultTextBox.Text = "Результат BFS: " + string.Join(", ", result);
+            sw.Stop();
+
+            ResultTextBox.AppendText("Результат BFS: " + string.Join(", ", result) + "\n");
+            ResultTextBox.AppendText($"Час BFS: {sw.Elapsed.TotalMilliseconds} мс\n\n");
+            ResultTextBox.ScrollToEnd();
         }
+
         private void DFSButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(StartNodeSearch.Text))
@@ -170,9 +202,15 @@ namespace UI
                 end = endNode;
             }
 
+            var sw = Stopwatch.StartNew();
             var result = g.DFS(start, end);
-            ResultTextBox.Text = "Результат DFS: " + string.Join(", ", result);
+            sw.Stop();
+
+            ResultTextBox.AppendText("Результат DFS: " + string.Join(", ", result) + "\n");
+            ResultTextBox.AppendText($"Час DFS: {sw.Elapsed.TotalMilliseconds} мс\n\n");
+            ResultTextBox.ScrollToEnd();
         }
+
         private void ClearGraph_Click(object sender, RoutedEventArgs e)
         {
             g = new Graph();
